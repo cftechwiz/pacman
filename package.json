@@ -9,7 +9,8 @@
     "dev": "nodemon .",
     "test": "mocha --timeout 20000 \"test/**/*.spec.js\"",
     "lint": "eslint . --ext .js --max-warnings 0",
-    "build": "npm run lint && npm test"
+    "build": "npm run lint && npm test",
+    "load:test": "node test/load/playwright-load.js"
   },
   "license": "GPLv3",
   "dependencies": {
@@ -29,7 +30,8 @@
     "mongodb-memory-server": "^9.0.0",
     "nodemon": "^3.1.0",
     "supertest": "^6.3.4",
-    "eslint": "^8.57.0"
+    "eslint": "^8.57.0",
+    "playwright": "^1.47.0"
   },
   "engines": {
     "node": ">=18.0.0"

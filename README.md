@@ -80,6 +80,32 @@ npm run build
 
 Tests use `mongodb-memory-server`. No external MongoDB is required for the test suite.
 
+### Load Simulation
+
+An automated browser-based load driver is available to exercise the UI and backing API routes. Install Playwright browsers once:
+
+```bash
+npx playwright install chromium
+```
+
+Then start the app (`npm start`) in one terminal and, in another, run:
+
+```bash
+npm run load:test
+```
+
+Environment variables control the session behaviour:
+
+| Variable | Description | Default |
+| --- | --- | --- |
+| `LOAD_TEST_BASE_URL` | Target URL for the load driver | `http://localhost:8080` |
+| `LOAD_TEST_VUS` | Number of concurrent virtual users | `5` |
+| `LOAD_TEST_MIN_SESSION` / `LOAD_TEST_MAX_SESSION` | Session duration range (seconds) | `10` / `30` |
+| `LOAD_TEST_THINK_TIME_MS` | Think time between actions (ms) | `750` |
+| `LOAD_TEST_MAX_SCORE` / `LOAD_TEST_MAX_LEVEL` / `LOAD_TEST_MAX_LIVES` | Gameplay metric limits | `5000` / `25` / `5` |
+
+Each virtual user opens the site headlessly, posts user stats & highscores, and polls the REST endpoints with randomised cadence to simulate real gameplay traffic.
+
 ## Docker & Docker Compose
 
 Build the production image from the project root:
