@@ -196,7 +196,7 @@ describe("Route integration", function () {
       const layer = app._router.stack.find(function (stackLayer) {
         return (
           stackLayer.route &&
-          stackLayer.route.path === "/js/splunk-instrumentation.js"
+          stackLayer.route.path === "/js/splunk-rum-loader.js"
         );
       });
 
@@ -217,11 +217,17 @@ describe("Route integration", function () {
         }
       );
 
-      const rumMatch = body.match(
-        /const rumConfig = (.*?);\nconst sessionRecorderConfig/s
-      );
-      expect(rumMatch, "rum config block exists").to.exist;
-      const rumConfig = JSON.parse(rumMatch[1]);
+      const extractJson = function (source, marker) {
+        const start = source.indexOf(marker);
+        expect(start, `${marker} missing`).to.be.greaterThan(-1);
+        const jsonStart = start + marker.length;
+        const jsonEnd = source.indexOf(";", jsonStart);
+        expect(jsonEnd, `${marker} terminator missing`).to.be.greaterThan(jsonStart);
+        const jsonString = source.slice(jsonStart, jsonEnd);
+        return JSON.parse(jsonString);
+      };
+
+      const rumConfig = extractJson(body, "var rumConfig = ");
       expect(rumConfig).to.deep.equal({
         realm: "test-realm",
         rumAccessToken: "test-token",
@@ -230,17 +236,14 @@ describe("Route integration", function () {
         deploymentEnvironment: "test-env",
       });
 
-      const sessionMatch = body.match(
-        /const sessionRecorderConfig = (.*?);\n\nif/s
-      );
-      expect(sessionMatch, "session recorder config block exists").to.exist;
-      const sessionConfig = JSON.parse(sessionMatch[1]);
+      const sessionConfig = extractJson(body, "var sessionRecorderConfig = ");
       expect(sessionConfig).to.deep.equal({
         realm: "test-realm",
         rumAccessToken: "test-token",
         recorder: "session-recorder",
       });
 
+      expect(body).to.include("window.SplunkRum.init");
       expect(body).to.include("SplunkSessionRecorder.init");
     });
   });

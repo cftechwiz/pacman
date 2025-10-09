@@ -16,13 +16,13 @@ const logger = baseLogger.child({ module: "app" });
 app.set("views", path.join(__dirname, "views"));
 app.set("view engine", "ejs");
 
-app.get("/js/splunk-instrumentation.js", function (req, res) {
+app.get("/js/splunk-rum-loader.js", function (req, res) {
   const rumConfig = {
-    realm: process.env.SPLUNK_REALM || "your-realm",
-    rumAccessToken: process.env.SPLUNK_RUM_ACCESS_TOKEN || "your-token",
-    applicationName: process.env.SPLUNK_APPLICATION_NAME || "your-app",
+    realm: process.env.SPLUNK_REALM || "",
+    rumAccessToken: process.env.SPLUNK_RUM_ACCESS_TOKEN || "",
+    applicationName: process.env.SPLUNK_APPLICATION_NAME || "pacman",
     version:
-      process.env.SPLUNK_APPLICATION_VERSION || packageInfo.version || "1.2.3",
+      process.env.SPLUNK_APPLICATION_VERSION || packageInfo.version || "0.0.1",
     deploymentEnvironment:
       process.env.SPLUNK_DEPLOYMENT_ENVIRONMENT ||
       process.env.NODE_ENV ||
@@ -32,25 +32,47 @@ app.get("/js/splunk-instrumentation.js", function (req, res) {
   const sessionRecorderConfig = {
     realm: rumConfig.realm,
     rumAccessToken: rumConfig.rumAccessToken,
-    recorder: process.env.SPLUNK_SESSION_RECORDER || "splunk",
+    recorder: process.env.SPLUNK_SESSION_RECORDER || "",
   };
 
-  const moduleSource = `import SplunkOtelWeb from '@splunk/otel-web';
-import SplunkSessionRecorder from '@splunk/otel-web-session-recorder';
+  const scriptSource = `// Dynamically generated Splunk RUM loader\n` +
+    `(function(){\n` +
+    `  var rumConfig = ${JSON.stringify(rumConfig)};\n` +
+    `  var sessionRecorderConfig = ${JSON.stringify(sessionRecorderConfig)};\n` +
+    `  if (!rumConfig.rumAccessToken) {\n` +
+    `    return;\n` +
+    `  }\n` +
+    `\n` +
+    `  function loadScript(src, onload) {\n` +
+    `    var script = document.createElement('script');\n` +
+    `    script.src = src;\n` +
+    `    script.crossOrigin = 'anonymous';\n` +
+    `    if (onload) {\n` +
+    `      script.onload = onload;\n` +
+    `    }\n` +
+    `    document.head.appendChild(script);\n` +
+    `  }\n` +
+    `\n` +
+    `  loadScript('https://cdn.signalfx.com/o11y-gdi-rum/latest/splunk-otel-web.js', function(){\n` +
+    `    if (!window.SplunkRum) {\n` +
+    `      console.warn('SplunkRum global not available after loading script');\n` +
+    `      return;\n` +
+    `    }\n` +
+    `    window.SplunkRum.init(rumConfig);\n` +
+    `\n` +
+    `    if (!sessionRecorderConfig.recorder) {\n` +
+    `      return;\n` +
+    `    }\n` +
+    `\n` +
+    `    loadScript('https://cdn.signalfx.com/o11y-gdi-rum/latest/splunk-otel-web-session-recorder.js', function(){\n` +
+    `      if (window.SplunkSessionRecorder) {\n` +
+    `        window.SplunkSessionRecorder.init(sessionRecorderConfig);\n` +
+    `      }\n` +
+    `    });\n` +
+    `  });\n` +
+    `})();\n`;
 
-const rumConfig = ${JSON.stringify(rumConfig)};
-const sessionRecorderConfig = ${JSON.stringify(sessionRecorderConfig)};
-
-if (rumConfig.rumAccessToken) {
-  SplunkOtelWeb.init(rumConfig);
-}
-
-if (sessionRecorderConfig.rumAccessToken && sessionRecorderConfig.recorder) {
-  SplunkSessionRecorder.init(sessionRecorderConfig);
-}
-`;
-
-  res.type("application/javascript").send(moduleSource);
+  res.type("application/javascript").send(scriptSource);
 });
 
 app.use("/", express.static(path.join(__dirname, "public")));
