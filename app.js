@@ -18,19 +18,21 @@ app.set("view engine", "ejs");
 
 app.get("/js/splunk-instrumentation.js", function (req, res) {
   const rumConfig = {
-    realm: process.env.SPLUNK_REALM || "",
-    rumAccessToken: process.env.SPLUNK_RUM_ACCESS_TOKEN || "",
-    applicationName: process.env.SPLUNK_APPLICATION_NAME || "pacman",
+    realm: process.env.SPLUNK_REALM || "your-realm",
+    rumAccessToken: process.env.SPLUNK_RUM_ACCESS_TOKEN || "your-token",
+    applicationName: process.env.SPLUNK_APPLICATION_NAME || "your-app",
     version:
-      process.env.SPLUNK_APPLICATION_VERSION || packageInfo.version || "0.0.1",
+      process.env.SPLUNK_APPLICATION_VERSION || packageInfo.version || "1.2.3",
     deploymentEnvironment:
-      process.env.SPLUNK_DEPLOYMENT_ENVIRONMENT || process.env.NODE_ENV || "production",
+      process.env.SPLUNK_DEPLOYMENT_ENVIRONMENT ||
+      process.env.NODE_ENV ||
+      "production",
   };
 
   const sessionRecorderConfig = {
     realm: rumConfig.realm,
     rumAccessToken: rumConfig.rumAccessToken,
-    recorder: process.env.SPLUNK_SESSION_RECORDER || "",
+    recorder: process.env.SPLUNK_SESSION_RECORDER || "splunk",
   };
 
   const moduleSource = `import SplunkOtelWeb from '@splunk/otel-web';
