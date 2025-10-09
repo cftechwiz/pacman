@@ -14,7 +14,7 @@ router.use(function timeLog(req, res, next) {
     next();
 });
 
-router.get('/metadata', function(req, res, next) {
+router.get('/metadata', function(req, res) {
     logger.info('Handling GET /location/metadata');
     var h = getHost();
     getCloudMetadata(function(c, z) {
