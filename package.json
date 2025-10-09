@@ -16,6 +16,7 @@
     "@opentelemetry/api": "^1.9.0",
     "@splunk/otel": "^4.0.0",
     "@splunk/otel-web": "^1.0.1",
+    "@splunk/otel-web-session-recorder": "^1.0.0",
     "body-parser": "^1.20.2",
     "ejs": "^3.1.10",
     "express": "^4.19.2",

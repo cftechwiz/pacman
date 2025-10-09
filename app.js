@@ -3,6 +3,7 @@
 const express = require("express");
 const path = require("path");
 const Database = require("./lib/database");
+const packageInfo = require("./package.json");
 const baseLogger = require("./lib/logger");
 
 const highscores = require("./routes/highscores");
@@ -14,6 +15,41 @@ const logger = baseLogger.child({ module: "app" });
 
 app.set("views", path.join(__dirname, "views"));
 app.set("view engine", "ejs");
+
+app.get("/js/splunk-instrumentation.js", function (req, res) {
+  const rumConfig = {
+    realm: process.env.SPLUNK_REALM || "",
+    rumAccessToken: process.env.SPLUNK_RUM_ACCESS_TOKEN || "",
+    applicationName: process.env.SPLUNK_APPLICATION_NAME || "pacman",
+    version:
+      process.env.SPLUNK_APPLICATION_VERSION || packageInfo.version || "0.0.1",
+    deploymentEnvironment:
+      process.env.SPLUNK_DEPLOYMENT_ENVIRONMENT || process.env.NODE_ENV || "production",
+  };
+
+  const sessionRecorderConfig = {
+    realm: rumConfig.realm,
+    rumAccessToken: rumConfig.rumAccessToken,
+    recorder: process.env.SPLUNK_SESSION_RECORDER || "",
+  };
+
+  const moduleSource = `import SplunkOtelWeb from '@splunk/otel-web';
+import SplunkSessionRecorder from '@splunk/otel-web-session-recorder';
+
+const rumConfig = ${JSON.stringify(rumConfig)};
+const sessionRecorderConfig = ${JSON.stringify(sessionRecorderConfig)};
+
+if (rumConfig.rumAccessToken) {
+  SplunkOtelWeb.init(rumConfig);
+}
+
+if (sessionRecorderConfig.rumAccessToken && sessionRecorderConfig.recorder) {
+  SplunkSessionRecorder.init(sessionRecorderConfig);
+}
+`;
+
+  res.type("application/javascript").send(moduleSource);
+});
 
 app.use("/", express.static(path.join(__dirname, "public")));
 

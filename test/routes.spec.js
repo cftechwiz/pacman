@@ -32,6 +32,13 @@ describe('Route integration', function () {
             process.env.MONGO_REPLICA_SET = replicaSetName;
         }
 
+        process.env.SPLUNK_REALM = 'test-realm';
+        process.env.SPLUNK_RUM_ACCESS_TOKEN = 'test-token';
+        process.env.SPLUNK_APPLICATION_NAME = 'test-app';
+        process.env.SPLUNK_APPLICATION_VERSION = '1.2.3';
+        process.env.SPLUNK_DEPLOYMENT_ENVIRONMENT = 'test-env';
+        process.env.SPLUNK_SESSION_RECORDER = 'session-recorder';
+
         delete require.cache[require.resolve('../lib/config')];
         delete require.cache[require.resolve('../lib/database')];
         delete require.cache[require.resolve('../app')];
@@ -56,6 +63,12 @@ describe('Route integration', function () {
         delete process.env.MONGO_USE_SSL;
         delete process.env.MONGO_VALIDATE_SSL;
         delete process.env.MONGO_REPLICA_SET;
+        delete process.env.SPLUNK_REALM;
+        delete process.env.SPLUNK_RUM_ACCESS_TOKEN;
+        delete process.env.SPLUNK_APPLICATION_NAME;
+        delete process.env.SPLUNK_APPLICATION_VERSION;
+        delete process.env.SPLUNK_DEPLOYMENT_ENVIRONMENT;
+        delete process.env.SPLUNK_SESSION_RECORDER;
     });
 
     beforeEach(async function () {
@@ -165,8 +178,22 @@ describe('Route integration', function () {
                 lives: 2,
                 et: 120,
                 txncount: 1
-            });
+    });
+
+    describe('Configuration routes', function () {
+        it('serves splunk instrumentation script with env values', async function () {
+            const response = await request.get('/js/splunk-instrumentation.js').expect(200);
+
+            expect(response.text).to.include('"realm":"test-realm"');
+            expect(response.text).to.include('"rumAccessToken":"test-token"');
+            expect(response.text).to.include('"applicationName":"test-app"');
+            expect(response.text).to.include('"version":"1.2.3"');
+            expect(response.text).to.include('"deploymentEnvironment":"test-env"');
+            expect(response.text).to.include('"recorder":"session-recorder"');
+            expect(response.text).to.include('SplunkSessionRecorder.init');
         });
+    });
+});
     });
 
 });

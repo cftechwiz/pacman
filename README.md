@@ -38,7 +38,13 @@ Most runtime settings live in `.env`. The key values are:
 | `MONGO_DATABASE` | Database name | `pacman` |
 | `MONGO_USE_SSL` / `MONGO_VALIDATE_SSL` | SSL flags | `false` / `true` |
 | `MONGO_AUTH_USER`, `MONGO_AUTH_PWD`, `MONGO_REPLICA_SET` | Optional auth/replica-set settings | empty |
-| `SPLUNK_REALM` | Splunk Observability realm (for future automation) | empty |
+| `SPLUNK_REALM` | Splunk Observability realm | empty |
+| `SPLUNK_RUM_ACCESS_TOKEN` | Splunk RUM access token | empty |
+| `SPLUNK_APPLICATION_NAME` | Application name reported to Splunk | `pacman` |
+| `SPLUNK_APPLICATION_VERSION` | Application version reported to Splunk | `0.0.1` |
+| `SPLUNK_DEPLOYMENT_ENVIRONMENT` | Environment label for Splunk | `production` |
+| `SPLUNK_SESSION_RECORDER` | Session recorder implementation (e.g. `web`) | `web` |
+| `SPLUNK_REALM` | Splunk Observability realm | empty |
 | `SPLUNK_RUM_ACCESS_TOKEN` | Splunk RUM access token | empty |
 | `SPLUNK_APPLICATION_NAME` | Application name reported to Splunk | `pacman` |
 | `SPLUNK_APPLICATION_VERSION` | Application version reported to Splunk | `0.0.1` |
@@ -46,7 +52,7 @@ Most runtime settings live in `.env`. The key values are:
 
 ### Splunk RUM Instrumentation
 
-The browser bundle at `public/js/splunk-instrumentation.js` contains the boilerplate `SplunkOtelWeb.init` call with placeholder values. Replace them with your realm/token/app details (or hook up your build process to inject values from the environment). The `.env` keys above are provided as a reference if you choose to automate that substitution.
+The browser loads `/js/splunk-instrumentation.js`, which the Express app generates on the fly using the Splunk-related environment variables. Provide `SPLUNK_RUM_ACCESS_TOKEN` (and optionally realm/name/version/environment) in `.env` or your deployment secrets and the script will call `SplunkOtelWeb.init` only when a token is present. If you also set `SPLUNK_SESSION_RECORDER`, the auto-generated module imports `@splunk/otel-web-session-recorder` and calls `SplunkSessionRecorder.init` with those values.
 
 ### Local Development
 
