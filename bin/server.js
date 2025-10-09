@@ -23,13 +23,20 @@ app.set('port', port);
 
 var server = http.createServer(app);
 
+var dbReady = app.locals && app.locals.dbReady ? app.locals.dbReady : Promise.resolve();
+
 /**
  * Listen on provided port, on all network interfaces.
  */
 
-server.listen(port);
-server.on('error', onError);
-server.on('listening', onListening);
+dbReady.then(function() {
+    server.listen(port);
+    server.on('error', onError);
+    server.on('listening', onListening);
+}).catch(function(err) {
+    logger.error({ err: err && err.message ? err.message : err }, 'Unable to start server because database connection failed');
+    process.exit(1);
+});
 
 /**
  * Normalize a port into a number, string, or false.

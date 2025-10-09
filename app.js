@@ -99,12 +99,15 @@ app.use(function (err, req, res, next) {
   res.render("error");
 });
 
-Database.connect(app)
+const dbReady = Database.connect(app)
   .then(function () {
     logger.info("Connected to database server successfully");
   })
   .catch(function (err) {
     logger.error({ err }, "Failed to connect to database server");
+    throw err;
   });
+
+app.locals.dbReady = dbReady;
 
 module.exports = app;
