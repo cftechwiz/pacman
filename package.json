@@ -5,7 +5,7 @@
   "author": "Ivan Font <ivan@ivanfont.com>",
   "main": "bin/server.js",
   "scripts": {
-    "start": "node .",
+    "start": "node -r @splunk/otel/instrument .",
     "dev": "nodemon .",
     "test": "mocha --timeout 20000 \"test/**/*.spec.js\"",
     "lint": "eslint . --ext .js --max-warnings 0",
