@@ -28,6 +28,63 @@ function randomName() {
   return `${randomChoice(adjectives)}-${randomChoice(nouns)}-${randomInt(1, 9999)}`;
 }
 
+async function performUiAction(page) {
+  const actions = [
+    async () => {
+      try {
+        await page.click(".button#newGame", { timeout: 1000 });
+        await page.waitForTimeout(randomInt(200, 600));
+        const keys = ["ArrowUp", "ArrowLeft", "ArrowDown", "ArrowRight", "Space"];
+        await page.keyboard.press(randomChoice(keys));
+      } catch (err) {
+        // ignore UI errors for optional actions
+      }
+    },
+    async () => {
+      try {
+        await page.click(".button#highscore", { timeout: 1000 });
+        await page.waitForTimeout(randomInt(300, 800));
+        await page.click("#highscore-content .button#back", { timeout: 500 }).catch(() => {});
+      } catch (err) {
+        console.debug("Highscore navigation failed", err.message);
+      }
+    },
+    async () => {
+      try {
+        await page.click(".button#livestats", { timeout: 1000 });
+        await page.waitForTimeout(randomInt(300, 800));
+        await page.click("#livestats-content .button#back", { timeout: 500 }).catch(() => {});
+      } catch (err) {
+        console.debug("Live stats navigation failed", err.message);
+      }
+    },
+    async () => {
+      try {
+        await page.click(".button#instructions", { timeout: 1000 });
+        await page.waitForTimeout(randomInt(300, 800));
+        await page.click("#instructions-content .button#back", { timeout: 500 }).catch(() => {});
+      } catch (err) {
+        console.debug("Instructions navigation failed", err.message);
+      }
+    },
+    async () => {
+      try {
+        await page.click("#canvas-container", { timeout: 1000 });
+        await page.waitForTimeout(randomInt(100, 400));
+        const keys = ["ArrowUp", "ArrowLeft", "ArrowDown", "ArrowRight"];
+        for (let i = 0; i < randomInt(1, 3); i += 1) {
+          await page.keyboard.press(randomChoice(keys));
+        }
+      } catch (err) {
+        console.debug("Canvas interaction failed", err.message);
+      }
+    },
+  ];
+
+  const chosen = randomChoice(actions);
+  await chosen();
+}
+
 async function simulateUser(userIndex) {
   const runForMs = randomInt(MIN_SESSION_SECONDS, MAX_SESSION_SECONDS) * 1000;
   const start = Date.now();
@@ -62,6 +119,8 @@ async function simulateUser(userIndex) {
     });
 
     while (Date.now() - start < runForMs) {
+      await performUiAction(page);
+
       await page.evaluate(
         async ({ meta, limits, userIdValue }) => {
           const randomDelay = (minimum, maximum) =>
@@ -86,7 +145,9 @@ async function simulateUser(userIndex) {
             body: payload.toString(),
           });
 
-          await new Promise((resolve) => setTimeout(resolve, randomInt(100, 1000)));
+          await new Promise((resolve) =>
+            setTimeout(resolve, randomDelay(100, 1000))
+          );
 
           await fetch("/highscores", {
             method: "POST",
