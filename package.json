@@ -7,7 +7,9 @@
   "scripts": {
     "start": "node .",
     "dev": "nodemon .",
-    "test": "mocha --timeout 20000 \"test/**/*.spec.js\""
+    "test": "mocha --timeout 20000 \"test/**/*.spec.js\"",
+    "lint": "eslint . --ext .js --max-warnings 0",
+    "build": "npm run lint && npm test"
   },
   "license": "GPLv3",
   "dependencies": {
@@ -25,7 +27,8 @@
     "mocha": "^10.4.0",
     "mongodb-memory-server": "^9.0.0",
     "nodemon": "^3.1.0",
-    "supertest": "^6.3.4"
+    "supertest": "^6.3.4",
+    "eslint": "^8.57.0"
   },
   "engines": {
     "node": ">=18.0.0"
