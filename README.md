@@ -44,6 +44,14 @@ Most runtime settings live in `.env`. The key values are:
 | `SPLUNK_APPLICATION_VERSION` | Application version reported to Splunk | `0.0.1` |
 | `SPLUNK_DEPLOYMENT_ENVIRONMENT` | Environment label for Splunk | `production` |
 | `SPLUNK_SESSION_RECORDER` | Session recorder implementation (e.g. `web`) | `web` |
+| `OTEL_LOG_LEVEL` | Node.js OTel agent log level | `debug` |
+| `OTEL_SERVICE_NAME` | Service name reported to OTel | `pacman-app` |
+| `OTEL_EXPORTER_OTLP_ENDPOINT` | Collector endpoint for OTel spans/metrics | `http://collector.example.com:4318` |
+| `OTEL_RESOURCE_ATTRIBUTES` | Extra OTel resource attributes | `deployment.environment=production,service.version=0.0.1` |
+| `SPLUNK_METRICS_ENABLED` | Enable Splunk metrics export | `true` |
+| `SPLUNK_INSTRUMENTATION_METRICS_ENABLED` | Enable instrumentation metrics | `true` |
+| `SPLUNK_PROFILER_ENABLED` | Enable Splunk continuous profiler | `true` |
+| `SPLUNK_PROFILER_LOGS_ENDPOINT` | Profiler logs endpoint | `http://collector.example.com:4318` |
 | `SPLUNK_REALM` | Splunk Observability realm | empty |
 | `SPLUNK_RUM_ACCESS_TOKEN` | Splunk RUM access token | empty |
 | `SPLUNK_APPLICATION_NAME` | Application name reported to Splunk | `pacman` |
