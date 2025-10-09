@@ -1,95 +1,104 @@
-var express = require('express');
+var express = require("express");
 var router = express.Router();
-var bodyParser = require('body-parser');
-var Database = require('../lib/database');
+var bodyParser = require("body-parser");
+var Database = require("../lib/database");
+var baseLogger = require("../lib/logger");
+
+var logger = baseLogger.child({ module: "routes/highscores" });
 
 // create application/x-www-form-urlencoded parser
-var urlencodedParser = bodyParser.urlencoded({ extended: false })
+var urlencodedParser = bodyParser.urlencoded({ extended: false });
 
 // middleware that is specific to this router
-router.use(function timeLog (req, res, next) {
-    console.log('Time: ', Date());
-    next();
-})
+router.use(function timeLog(req, res, next) {
+  logger.debug({ method: req.method, url: req.originalUrl }, "Incoming request");
+  next();
+});
 
-router.get('/list', urlencodedParser, function(req, res, next) {
-    console.log('[GET /highscores/list]');
-    Database.getDb(req.app, function(err, db) {
-        if (err) {
-            return next(err);
-        }
+router.get("/list", urlencodedParser, async function (req, res, next) {
+  logger.info("Handling GET /highscores/list");
+  try {
+    var db = await Database.getDb(req.app);
+    var docs = await db
+      .collection("highscore")
+      .find({})
+      .sort({ score: -1 })
+      .limit(10)
+      .toArray();
 
-        // Retrieve the top 10 high scores
-        var col = db.collection('highscore');
-        col.find({}).sort([['score', -1]]).limit(10).toArray(function(err, docs) {
-            var result = [];
-            if (err) {
-                console.log(err);
-            }
-
-            docs.forEach(function(item, index, array) {
-                result.push({ name: item['name'], cloud: item['cloud'],
-                              zone: item['zone'], host: item['host'],
-                              score: item['score'] });
-            });
-
-            res.json(result);
-        });
+    var result = docs.map(function (item) {
+      return {
+        name: item["name"],
+        cloud: item["cloud"],
+        zone: item["zone"],
+        host: item["host"],
+        score: item["score"],
+      };
     });
+
+    res.json(result);
+  } catch (err) {
+    logger.error({ err }, "Failed to fetch highscores");
+    return next(err);
+  }
 });
 
 // Accessed at /highscores
-router.post('/', urlencodedParser, function(req, res, next) {
-    console.log('[POST /highscores] body =', req.body,
-                ' host =', req.headers.host,
-                ' user-agent =', req.headers['user-agent'],
-                ' referer =', req.headers.referer);
+router.post("/", urlencodedParser, async function (req, res, next) {
+  logger.info(
+    {
+      body: req.body,
+      host: req.headers.host,
+      userAgent: req.headers["user-agent"],
+      referer: req.headers.referer,
+    },
+    "Handling POST /highscores"
+  );
 
-    var userScore = parseInt(req.body.score, 10),
-        userLevel = parseInt(req.body.level, 10);
+  var userScore = parseInt(req.body.score, 10);
+  var userLevel = parseInt(req.body.level, 10);
 
-    Database.getDb(req.app, function(err, db) {
-        if (err) {
-            return next(err);
-        }
+  try {
+    var db = await Database.getDb(req.app);
+    var insertResult = await db.collection("highscore").insertOne(
+      {
+        name: req.body.name,
+        cloud: req.body.cloud,
+        zone: req.body.zone,
+        host: req.body.host,
+        score: userScore,
+        level: userLevel,
+        date: Date(),
+        referer: req.headers.referer,
+        user_agent: req.headers["user-agent"],
+        hostname: req.hostname,
+        ip_addr: req.ip,
+      },
+      {
+        writeConcern: {
+          w: "majority",
+          j: true,
+          wtimeoutMS: 10000,
+        },
+      }
+    );
 
-        // Insert high score with extra user data
-        db.collection('highscore').insertOne({
-                name: req.body.name,
-                cloud: req.body.cloud,
-                zone: req.body.zone,
-                host: req.body.host,
-                score: userScore,
-                level: userLevel,
-                date: Date(),
-                referer: req.headers.referer,
-                user_agent: req.headers['user-agent'],
-                hostname: req.hostname,
-                ip_addr: req.ip
-            }, {
-                w: 'majority',
-                j: true,
-                wtimeout: 10000
-            }, function(err, result) {
-                var returnStatus = '';
+    var returnStatus = insertResult.acknowledged ? "success" : "error";
+    if (returnStatus === "success") {
+      logger.info({ name: req.body.name, score: userScore }, "Successfully inserted highscore");
+    }
 
-                if (err) {
-                    console.log(err);
-                    returnStatus = 'error';
-                } else {
-                    console.log('Successfully inserted highscore');
-                    returnStatus = 'success';
-                }
-
-                res.json({
-                    name: req.body.name,
-                    zone: req.body.zone,
-                    score: userScore,
-                    level: userLevel,
-                    rs: returnStatus
-                });
-            });
+    res.json({
+      name: req.body.name,
+      zone: req.body.zone,
+      score: userScore,
+      level: userLevel,
+      rs: returnStatus,
     });
+  } catch (err) {
+    logger.error({ err }, "Failed to insert highscore");
+    return next(err);
+  }
 });
 
 module.exports = router;

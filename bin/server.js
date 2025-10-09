@@ -5,8 +5,10 @@
  */
 
 var app = require('../app');
-//var debug = require('debug')('pacman:server');
 var http = require('http');
+var baseLogger = require('../lib/logger');
+
+var logger = baseLogger.child({ module: 'server' });
 
 /**
  * Get port from environment and store in Express.
@@ -65,11 +67,11 @@ function onError(error) {
     // handle specific listen errors with friendly messages
     switch (error.code) {
         case 'EACCES':
-            console.error(bind + ' requires elevated privileges');
+            logger.error({ bind: bind, code: error.code }, bind + ' requires elevated privileges');
             process.exit(1);
             break;
         case 'EADDRINUSE':
-            console.error(bind + ' is already in use');
+            logger.error({ bind: bind, code: error.code }, bind + ' is already in use');
             process.exit(1);
             break;
         default:
@@ -86,5 +88,5 @@ function onListening() {
     var bind = typeof addr === 'string'
         ? 'pipe ' + addr
         : 'port ' + addr.port;
-    console.log('Listening on ' + bind);
+    logger.info({ bind: bind }, 'Listening');
 }

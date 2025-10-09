@@ -1,0 +1,37 @@
+version: "3.9"
+
+services:
+  pacman-mongo:
+    image: mongo:7.0
+    restart: unless-stopped
+    environment:
+      MONGO_INITDB_DATABASE: ${MONGO_DATABASE}
+    volumes:
+      - mongo-data:/data/db
+    ports:
+      - "${MY_MONGO_PORT}:${MY_MONGO_PORT}"
+
+  pacman-app:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    depends_on:
+      - pacman-mongo
+    env_file:
+      - .env
+    environment:
+      PORT: ${PORT}
+      NODE_ENV: ${NODE_ENV}
+      MONGO_SERVICE_HOST: ${MONGO_SERVICE_HOST}
+      MY_MONGO_PORT: ${MY_MONGO_PORT}
+      MONGO_DATABASE: ${MONGO_DATABASE}
+      MONGO_USE_SSL: ${MONGO_USE_SSL}
+      MONGO_VALIDATE_SSL: ${MONGO_VALIDATE_SSL}
+      MONGO_AUTH_USER: ${MONGO_AUTH_USER}
+      MONGO_AUTH_PWD: ${MONGO_AUTH_PWD}
+      MONGO_REPLICA_SET: ${MONGO_REPLICA_SET}
+    ports:
+      - "${PORT}:${PORT}"
+
+volumes:
+  mongo-data:

@@ -1,59 +1,50 @@
-'use strict';
+"use strict";
 
-var express = require('express');
-var path = require('path');
-var Database = require('./lib/database');
-var assert = require('assert');
+const express = require("express");
+const path = require("path");
+const Database = require("./lib/database");
+const baseLogger = require("./lib/logger");
 
-// Constants
+const highscores = require("./routes/highscores");
+const user = require("./routes/user");
+const loc = require("./routes/location");
 
-// Routes
-var highscores = require('./routes/highscores');
-var user = require('./routes/user');
-var loc = require('./routes/location');
+const app = express();
+const logger = baseLogger.child({ module: "app" });
 
-// App
-var app = express();
+app.set("views", path.join(__dirname, "views"));
+app.set("view engine", "ejs");
 
-// view engine setup
-app.set('views', path.join(__dirname, 'views'));
-app.set('view engine', 'jade');
+app.use("/", express.static(path.join(__dirname, "public")));
 
-// Handle root web server's public directory
-app.use('/', express.static(path.join(__dirname, 'public')));
+app.use("/highscores", highscores);
+app.use("/user", user);
+app.use("/location", loc);
 
-app.use('/highscores', highscores);
-app.use('/user', user);
-app.use('/location', loc);
-
-// Catch 404 and forward to error handler
-app.use(function(req, res, next) {
-    var err = new Error('Not Found');
-    err.status = 404;
-    next(err);
+app.use(function (req, res, next) {
+  const err = new Error("Not Found");
+  err.status = 404;
+  next(err);
 });
 
-// Error Handler
-app.use(function(err, req, res, next) {
-    if (res.headersSent) {
-        return next(err)
-    }
-    // set locals, only providing error in development
-    res.locals.message = err.message;
-    res.locals.error = req.app.get('env') === 'development' ? err : {};
+app.use(function (err, req, res, next) {
+  if (res.headersSent) {
+    return next(err);
+  }
 
-    // render the error page
-    res.status(err.status || 500);
-    res.render('error');
+  res.locals.message = err.message;
+  res.locals.error = req.app.get("env") === "development" ? err : {};
+
+  res.status(err.status || 500);
+  res.render("error");
 });
 
-Database.connect(app, function(err) {
-    if (err) {
-        console.log('Failed to connect to database server');
-    } else {
-        console.log('Connected to database server successfully');
-    }
-
-});
+Database.connect(app)
+  .then(function () {
+    logger.info("Connected to database server successfully");
+  })
+  .catch(function (err) {
+    logger.error({ err }, "Failed to connect to database server");
+  });
 
 module.exports = app;

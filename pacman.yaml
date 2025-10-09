@@ -1,0 +1,119 @@
+apiVersion: v1
+kind: Namespace
+metadata:
+  name: pacman
+---
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: pacman-config
+  namespace: pacman
+data:
+  NODE_ENV: "production"
+  PORT: "8080"
+  MONGO_SERVICE_HOST: "pacman-mongo"
+  MY_MONGO_PORT: "27017"
+  MONGO_DATABASE: "pacman"
+  MONGO_USE_SSL: "false"
+  MONGO_VALIDATE_SSL: "true"
+  MONGO_AUTH_USER: ""
+  MONGO_AUTH_PWD: ""
+  MONGO_REPLICA_SET: ""
+---
+apiVersion: v1
+kind: PersistentVolumeClaim
+metadata:
+  name: pacman-mongo-pvc
+  namespace: pacman
+spec:
+  accessModes:
+    - ReadWriteOnce
+  resources:
+    requests:
+      storage: 1Gi
+---
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: pacman-mongo
+  namespace: pacman
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: pacman-mongo
+  template:
+    metadata:
+      labels:
+        app: pacman-mongo
+    spec:
+      containers:
+        - name: pacman-mongo
+          image: mongo:7.0
+          ports:
+            - containerPort: 27017
+          env:
+            - name: MONGO_INITDB_DATABASE
+              valueFrom:
+                configMapKeyRef:
+                  name: pacman-config
+                  key: MONGO_DATABASE
+          volumeMounts:
+            - name: mongo-data
+              mountPath: /data/db
+      volumes:
+        - name: mongo-data
+          persistentVolumeClaim:
+            claimName: pacman-mongo-pvc
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: pacman-mongo
+  namespace: pacman
+spec:
+  selector:
+    app: pacman-mongo
+  ports:
+    - name: mongodb
+      port: 27017
+      targetPort: 27017
+---
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: pacman-app
+  namespace: pacman
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: pacman-app
+  template:
+    metadata:
+      labels:
+        app: pacman-app
+    spec:
+      containers:
+        - name: pacman-app
+          image: pacman-app:latest
+          imagePullPolicy: IfNotPresent
+          envFrom:
+            - configMapRef:
+                name: pacman-config
+          ports:
+            - containerPort: 8080
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: pacman-app
+  namespace: pacman
+spec:
+  type: LoadBalancer
+  selector:
+    app: pacman-app
+  ports:
+    - name: http
+      port: 80
+      targetPort: 8080

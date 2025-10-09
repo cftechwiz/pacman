@@ -4,20 +4,21 @@ var express = require('express');
 var router = express.Router();
 var fs = require('fs');
 var os = require('os');
+var baseLogger = require('../lib/logger');
+
+var logger = baseLogger.child({ module: 'routes/location' });
 
 // middleware that is specific to this router
 router.use(function timeLog(req, res, next) {
-    console.log('Time: ', Date());
+    logger.debug({ timestamp: new Date().toISOString(), method: req.method, url: req.originalUrl }, 'Incoming request');
     next();
-})
+});
 
 router.get('/metadata', function(req, res, next) {
-    console.log('[GET /loc/metadata]');
+    logger.info('Handling GET /location/metadata');
     var h = getHost();
     getCloudMetadata(function(c, z) {
-        console.log(`CLOUD: ${c}`);
-        console.log(`ZONE: ${z}`);
-        console.log(`HOST: ${h}`);
+        logger.info({ cloud: c, zone: z, host: h }, 'Resolved cloud metadata');
         res.json({
             cloud: c,
             zone: z,
@@ -27,19 +28,23 @@ router.get('/metadata', function(req, res, next) {
 });
 
 function getCloudMetadata(callback) {
-    console.log('getCloudMetadata');
+    logger.debug('getCloudMetadata');
     // Query k8s node api
     getK8sCloudMetadata(function(err, c, z) {
         if (err) {
+            logger.debug({ err }, 'k8s metadata lookup failed, trying AWS');
             // Try AWS next
             getAWSCloudMetadata(function(err, c, z) {
                 if (err) {
+                    logger.debug({ err }, 'AWS metadata lookup failed, trying Azure');
                     // Try Azure next
                     getAzureCloudMetadata(function(err, c, z) {
                         if (err) {
+                            logger.debug({ err }, 'Azure metadata lookup failed, trying GCP');
                             // Try GCP next
                             getGCPCloudMetadata(function(err, c, z) {
                                 if (err) {
+                                    logger.debug({ err }, 'GCP metadata lookup failed, trying OpenStack');
                                     // Try Openstack next
                                     getOpenStackCloudMetadata(function(err, c, z) {
                                         // Return result regardless of error
@@ -58,13 +63,14 @@ function getCloudMetadata(callback) {
                 }
             });
         } else {
+            logger.debug('k8s metadata lookup succeeded');
             callback(c, z); // Running against k8s api
         }
     });
 }
 
 function getOpenStackCloudMetadata(callback) {
-    console.log('getOpenStackCloudMetadata');
+    logger.debug('getOpenStackCloudMetadata');
     // Set options to retrieve OpenStack zone for instance
     var osOptions = {
         hostname: '169.254.169.254',
@@ -86,39 +92,37 @@ function getOpenStackCloudMetadata(callback) {
         }
 
         if (error) {
-            console.log(error.message);
+            logger.error({ err: error, statusCode: metadataRes.statusCode }, 'OpenStack metadata request failed');
             // consume response data to free up memory
             metadataRes.resume();
             callback(error, cloudName, zone);
             return;
         }
 
-        console.log(`STATUS: ${metadataRes.statusCode}`);
-        console.log(`HEADERS: ${JSON.stringify(metadataRes.headers)}`);
+        logger.debug({ statusCode: metadataRes.statusCode, headers: metadataRes.headers }, 'OpenStack metadata response received');
         metadataRes.setEncoding('utf8');
 
         var metaData;
 
         metadataRes.on('data', (chunk) => {
-            console.log(`BODY: ${chunk}`);
+            logger.debug({ chunk }, 'OpenStack metadata chunk received');
             metaData = JSON.parse(chunk);
         });
 
         metadataRes.on('end', () => {
-            console.log('No more data in response.');
+            logger.debug('OpenStack metadata response ended');
             cloudName = 'OpenStack'; // Request was successful
             zone = metaData.availability_zone;
 
             // use extra metadata to identify the cloud if available
             if (metaData.meta) {
-                clusterId = metaData.meta.clusterid;
+                var clusterId = metaData.meta.clusterid;
                 if (clusterId) {
                     cloudName += ' - ' + clusterId.split('.')[0];
                 }
             }
 
-            console.log(`CLOUD: ${cloudName}`);
-            console.log(`ZONE: ${zone}`);
+            logger.info({ cloud: cloudName, zone: zone }, 'OpenStack cloud metadata resolved');
 
             // return CLOUD and ZONE data
             callback(null, cloudName, zone);
@@ -127,7 +131,7 @@ function getOpenStackCloudMetadata(callback) {
     });
 
     req.on('error', (e) => {
-        console.log(`problem with request: ${e.message}`);
+        logger.error({ err: e }, 'Error requesting OpenStack metadata');
         // return CLOUD and ZONE data
         callback(e, cloudName, zone);
     });
@@ -137,7 +141,7 @@ function getOpenStackCloudMetadata(callback) {
 }
 
 function getAWSCloudMetadata(callback) {
-    console.log('getAWSCloudMetadata');
+    logger.debug('getAWSCloudMetadata');
     // Set options to retrieve AWS zone for instance
     var awsOptions = {
         hostname: '169.254.169.254',
@@ -159,31 +163,29 @@ function getAWSCloudMetadata(callback) {
         }
 
         if (error) {
-            console.log(error.message);
+            logger.error({ err: error, statusCode: zoneRes.statusCode }, 'AWS metadata request failed');
             // consume response data to free up memory
             zoneRes.resume();
             callback(error, cloudName, zone);
             return;
         }
 
-        console.log(`STATUS: ${zoneRes.statusCode}`);
-        console.log(`HEADERS: ${JSON.stringify(zoneRes.headers)}`);
+        logger.debug({ statusCode: zoneRes.statusCode, headers: zoneRes.headers }, 'AWS metadata response received');
         zoneRes.setEncoding('utf8');
 
         zoneRes.on('data', (chunk) => {
-            console.log(`BODY: ${chunk}`);
+            logger.debug({ chunk }, 'AWS metadata chunk received');
             zone = chunk;
         });
 
         zoneRes.on('end', () => {
-            console.log('No more data in response.');
+            logger.debug('AWS metadata response ended');
             cloudName = 'AWS'; // Request was successful
 
             // get the zone substring in uppercase
             var zoneSplit = zone.split('/');
             zone = zoneSplit[zoneSplit.length - 1].toLowerCase();
-            console.log(`CLOUD: ${cloudName}`);
-            console.log(`ZONE: ${zone}`);
+            logger.info({ cloud: cloudName, zone: zone }, 'AWS cloud metadata resolved');
 
             // return CLOUD and ZONE data
             callback(null, cloudName, zone);
@@ -192,7 +194,7 @@ function getAWSCloudMetadata(callback) {
     });
 
     req.on('error', (e) => {
-        console.log(`problem with request: ${e.message}`);
+        logger.error({ err: e }, 'Error requesting AWS metadata');
         // return CLOUD and ZONE data
         callback(e, cloudName, zone);
     });
@@ -202,7 +204,7 @@ function getAWSCloudMetadata(callback) {
 }
 
 function getAzureCloudMetadata(callback) {
-    console.log('getAzureCloudMetadata');
+    logger.debug('getAzureCloudMetadata');
     // Set options to retrieve Azure zone for instance
     var azureOptions = {
         hostname: '169.254.169.254',
@@ -227,31 +229,29 @@ function getAzureCloudMetadata(callback) {
         }
 
         if (error) {
-            console.log(error.message);
+            logger.error({ err: error, statusCode: zoneRes.statusCode }, 'Azure metadata request failed');
             // consume response data to free up memory
             zoneRes.resume();
             callback(error, cloudName, zone);
             return;
         }
 
-        console.log(`STATUS: ${zoneRes.statusCode}`);
-        console.log(`HEADERS: ${JSON.stringify(zoneRes.headers)}`);
+        logger.debug({ statusCode: zoneRes.statusCode, headers: zoneRes.headers }, 'Azure metadata response received');
         zoneRes.setEncoding('utf8');
 
         zoneRes.on('data', (chunk) => {
-            console.log(`BODY: ${chunk}`);
+            logger.debug({ chunk }, 'Azure metadata chunk received');
             zone = chunk;
         });
 
         zoneRes.on('end', () => {
-            console.log('No more data in response.');
+            logger.debug('Azure metadata response ended');
             cloudName = 'Azure'; // Request was successful
 
             // get the zone substring in uppercase
             var zoneSplit = zone.split('/');
             zone = zoneSplit[zoneSplit.length - 1].toLowerCase();
-            console.log(`CLOUD: ${cloudName}`);
-            console.log(`ZONE: ${zone}`);
+            logger.info({ cloud: cloudName, zone: zone }, 'Azure cloud metadata resolved');
 
             // return CLOUD and ZONE data
             callback(null, cloudName, zone);
@@ -260,7 +260,7 @@ function getAzureCloudMetadata(callback) {
     });
 
     req.on('error', (e) => {
-        console.log(`problem with request: ${e.message}`);
+        logger.error({ err: e }, 'Error requesting Azure metadata');
         // return CLOUD and ZONE data
         callback(e, cloudName, zone);
     });
@@ -270,7 +270,7 @@ function getAzureCloudMetadata(callback) {
 }
 
 function getGCPCloudMetadata(callback) {
-    console.log('getGCPCloudMetadata');
+    logger.debug('getGCPCloudMetadata');
     // Set options to retrieve GCE zone for instance
     var gcpOptions = {
         hostname: 'metadata.google.internal',
@@ -295,31 +295,29 @@ function getGCPCloudMetadata(callback) {
         }
 
         if (error) {
-            console.log(error.message);
+            logger.error({ err: error, statusCode: zoneRes.statusCode }, 'GCP metadata request failed');
             // consume response data to free up memory
             zoneRes.resume();
             callback(error, cloudName, zone);
             return;
         }
 
-        console.log(`STATUS: ${zoneRes.statusCode}`);
-        console.log(`HEADERS: ${JSON.stringify(zoneRes.headers)}`);
+        logger.debug({ statusCode: zoneRes.statusCode, headers: zoneRes.headers }, 'GCP metadata response received');
         zoneRes.setEncoding('utf8');
 
         zoneRes.on('data', (chunk) => {
-            console.log(`BODY: ${chunk}`);
+            logger.debug({ chunk }, 'GCP metadata chunk received');
             zone = chunk;
         });
 
         zoneRes.on('end', () => {
-            console.log('No more data in response.');
+            logger.debug('GCP metadata response ended');
             cloudName = 'GCP'; // Request was successful
 
             // get the zone substring in uppercase
             var zoneSplit = zone.split('/');
             zone = zoneSplit[zoneSplit.length - 1].toLowerCase();
-            console.log(`CLOUD: ${cloudName}`);
-            console.log(`ZONE: ${zone}`);
+            logger.info({ cloud: cloudName, zone: zone }, 'GCP cloud metadata resolved');
 
             // return CLOUD and ZONE data
             callback(null, cloudName, zone);
@@ -328,7 +326,7 @@ function getGCPCloudMetadata(callback) {
     });
 
     req.on('error', (e) => {
-        console.log(`problem with request: ${e.message}`);
+        logger.error({ err: e }, 'Error requesting GCP metadata');
         // return CLOUD and ZONE data
         callback(e, cloudName, zone);
     });
@@ -338,16 +336,19 @@ function getGCPCloudMetadata(callback) {
 }
 
 function getK8sCloudMetadata(callback) {
-    console.log('getK8sCloudMetadata');
+    logger.debug('getK8sCloudMetadata');
     // Set options to retrieve k8s api information
     var node_name = process.env.MY_NODE_NAME;
-    console.log('Querying ' + node_name + ' for cloud data');
+    logger.debug({ nodeName: node_name }, 'Querying node for cloud data');
+
+    var sa_token;
+    var ca_file;
 
     try {
-        var sa_token = fs.readFileSync('/var/run/secrets/kubernetes.io/serviceaccount/token');
-        var ca_file = fs.readFileSync('/var/run/secrets/kubernetes.io/serviceaccount/ca.crt');
+        sa_token = fs.readFileSync('/var/run/secrets/kubernetes.io/serviceaccount/token');
+        ca_file = fs.readFileSync('/var/run/secrets/kubernetes.io/serviceaccount/ca.crt');
     } catch (err) {
-        console.log(err)
+        logger.error({ err }, 'Failed to read Kubernetes service account credentials');
     }
 
     var headers = {
@@ -375,15 +376,14 @@ function getK8sCloudMetadata(callback) {
         }
 
         if (error) {
-            console.log(error.message);
+            logger.error({ err: error, statusCode: zoneRes.statusCode }, 'Kubernetes metadata request failed');
             // consume response data to free up memory
             zoneRes.resume();
             callback(error, cloudName, zone);
             return;
         }
 
-        console.log(`STATUS: ${zoneRes.statusCode}`);
-        console.log(`HEADERS: ${JSON.stringify(zoneRes.headers)}`);
+        logger.debug({ statusCode: zoneRes.statusCode, headers: zoneRes.headers }, 'Kubernetes metadata response received');
         zoneRes.setEncoding('utf8');
 
         var body = [];
@@ -393,8 +393,8 @@ function getK8sCloudMetadata(callback) {
         });
         zoneRes.on('end', () => {
             var metaData = JSON.parse(body.join(''));
-            console.log(`RESULT: ${metaData}`);
-            console.log('No more data in response.');
+            logger.debug({ metadata: metaData }, 'Kubernetes metadata parsed');
+            logger.debug('Kubernetes metadata response ended');
 
             if (metaData.spec.providerID) {
                 var provider = metaData.spec.providerID;
@@ -409,12 +409,11 @@ function getK8sCloudMetadata(callback) {
             // return CLOUD and ZONE data
             if (cloudName == "unknown") {
                 error = new Error(`CloudName not found on node Spec`);
-                console.log(error);
+                logger.error({ err: error }, 'Cloud name not found on Kubernetes node spec');
                 callback(error, cloudName, zone);
             }
             else {
-                console.log(`CLOUD: ${cloudName}`);
-                console.log(`ZONE: ${zone}`);
+                logger.info({ cloud: cloudName, zone: zone }, 'Kubernetes cloud metadata resolved');
                 callback(null, cloudName, zone);
             }
         });
@@ -422,7 +421,7 @@ function getK8sCloudMetadata(callback) {
     });
 
     req.on('error', (e) => {
-        console.log(`problem with request: ${e.message}`);
+        logger.error({ err: e }, 'Error requesting Kubernetes metadata');
         // return CLOUD and ZONE data
         callback(e, cloudName, zone);
     });
@@ -432,9 +431,8 @@ function getK8sCloudMetadata(callback) {
 }
 
 function getHost() {
-    console.log('[getHost]');
     var host = os.hostname();
-    console.log(`HOST: ${host}`);
+    logger.debug({ host: host }, 'Determined host name');
     return host;
 }
 
