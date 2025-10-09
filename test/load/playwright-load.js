@@ -2,14 +2,26 @@
 "use strict";
 
 const { chromium } = require("playwright");
-const crypto = require("node:crypto");
+//const crypto = require("node:crypto");
 
 const BASE_URL = process.env.LOAD_TEST_BASE_URL || "http://localhost:8080";
 const VUS = Number.parseInt(process.env.LOAD_TEST_VUS || "5", 10);
-const MIN_SESSION_SECONDS = Number.parseInt(process.env.LOAD_TEST_MIN_SESSION || "10", 10);
-const MAX_SESSION_SECONDS = Number.parseInt(process.env.LOAD_TEST_MAX_SESSION || "30", 10);
-const THINK_TIME_MS = Number.parseInt(process.env.LOAD_TEST_THINK_TIME_MS || "750", 10);
-const MAX_HIGHSCORE = Number.parseInt(process.env.LOAD_TEST_MAX_SCORE || "5000", 10);
+const MIN_SESSION_SECONDS = Number.parseInt(
+  process.env.LOAD_TEST_MIN_SESSION || "10",
+  10
+);
+const MAX_SESSION_SECONDS = Number.parseInt(
+  process.env.LOAD_TEST_MAX_SESSION || "30",
+  10
+);
+const THINK_TIME_MS = Number.parseInt(
+  process.env.LOAD_TEST_THINK_TIME_MS || "750",
+  10
+);
+const MAX_HIGHSCORE = Number.parseInt(
+  process.env.LOAD_TEST_MAX_SCORE || "5000",
+  10
+);
 const MAX_LEVEL = Number.parseInt(process.env.LOAD_TEST_MAX_LEVEL || "25", 10);
 const MAX_LIVES = Number.parseInt(process.env.LOAD_TEST_MAX_LIVES || "5", 10);
 
@@ -22,9 +34,30 @@ function randomChoice(list) {
 }
 
 function randomName() {
-  const adjectives = ["red", "blue", "swift", "fierce", "lucky", "wild", "golden", "silent"];
-  const nouns = ["ghost", "pellet", "maze", "runner", "hunter", "power", "sprite", "chomp"];
-  return `${randomChoice(adjectives)}-${randomChoice(nouns)}-${randomInt(1, 9999)}`;
+  const adjectives = [
+    "red",
+    "blue",
+    "swift",
+    "fierce",
+    "lucky",
+    "wild",
+    "golden",
+    "silent",
+  ];
+  const nouns = [
+    "ghost",
+    "pellet",
+    "maze",
+    "runner",
+    "hunter",
+    "power",
+    "sprite",
+    "chomp",
+  ];
+  return `${randomChoice(adjectives)}-${randomChoice(nouns)}-${randomInt(
+    1,
+    9999
+  )}`;
 }
 
 async function simulateUser(userIndex) {
@@ -41,7 +74,12 @@ async function simulateUser(userIndex) {
     const sessionMeta = {
       name: randomName(),
       cloud: randomChoice(["aws", "gcp", "azure", "onprem"]),
-      zone: randomChoice(["us-east-1", "us-west-2", "eu-central-1", "asia-east"]).toLowerCase(),
+      zone: randomChoice([
+        "us-east-1",
+        "us-west-2",
+        "eu-central-1",
+        "asia-east",
+      ]).toLowerCase(),
       host: `vu-${userIndex}`,
     };
 
@@ -97,10 +135,7 @@ async function simulateUser(userIndex) {
             }).toString(),
           });
 
-          await Promise.all([
-            fetch("/highscores/list"),
-            fetch("/user/stats"),
-          ]);
+          await Promise.all([fetch("/highscores/list"), fetch("/user/stats")]);
         },
         {
           meta: sessionMeta,
