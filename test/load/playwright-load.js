@@ -2,28 +2,17 @@
 "use strict";
 
 const { chromium } = require("playwright");
-//const crypto = require("node:crypto");
 
 const BASE_URL = process.env.LOAD_TEST_BASE_URL || "http://localhost:8080";
 const VUS = Number.parseInt(process.env.LOAD_TEST_VUS || "5", 10);
-const MIN_SESSION_SECONDS = Number.parseInt(
-  process.env.LOAD_TEST_MIN_SESSION || "10",
-  10
-);
-const MAX_SESSION_SECONDS = Number.parseInt(
-  process.env.LOAD_TEST_MAX_SESSION || "30",
-  10
-);
-const THINK_TIME_MS = Number.parseInt(
-  process.env.LOAD_TEST_THINK_TIME_MS || "750",
-  10
-);
-const MAX_HIGHSCORE = Number.parseInt(
-  process.env.LOAD_TEST_MAX_SCORE || "5000",
-  10
-);
+const MIN_SESSION_SECONDS = Number.parseInt(process.env.LOAD_TEST_MIN_SESSION || "10", 10);
+const MAX_SESSION_SECONDS = Number.parseInt(process.env.LOAD_TEST_MAX_SESSION || "30", 10);
+const MAX_HIGHSCORE = Number.parseInt(process.env.LOAD_TEST_MAX_SCORE || "5000", 10);
 const MAX_LEVEL = Number.parseInt(process.env.LOAD_TEST_MAX_LEVEL || "25", 10);
 const MAX_LIVES = Number.parseInt(process.env.LOAD_TEST_MAX_LIVES || "5", 10);
+const MIN_STEP_DELAY_MS = Number.parseInt(process.env.LOAD_TEST_MIN_STEP_DELAY || "100", 10);
+const MAX_STEP_DELAY_MS = Number.parseInt(process.env.LOAD_TEST_MAX_STEP_DELAY || "1000", 10);
+const MAX_ITERATIONS = Number.parseInt(process.env.LOAD_TEST_MAX_ITERATIONS || "0", 10); // 0 => infinite
 
 function randomInt(min, max) {
   return Math.floor(Math.random() * (max - min + 1)) + min;
@@ -34,30 +23,9 @@ function randomChoice(list) {
 }
 
 function randomName() {
-  const adjectives = [
-    "red",
-    "blue",
-    "swift",
-    "fierce",
-    "lucky",
-    "wild",
-    "golden",
-    "silent",
-  ];
-  const nouns = [
-    "ghost",
-    "pellet",
-    "maze",
-    "runner",
-    "hunter",
-    "power",
-    "sprite",
-    "chomp",
-  ];
-  return `${randomChoice(adjectives)}-${randomChoice(nouns)}-${randomInt(
-    1,
-    9999
-  )}`;
+  const adjectives = ["red", "blue", "swift", "fierce", "lucky", "wild", "golden", "silent"];
+  const nouns = ["ghost", "pellet", "maze", "runner", "hunter", "power", "sprite", "chomp"];
+  return `${randomChoice(adjectives)}-${randomChoice(nouns)}-${randomInt(1, 9999)}`;
 }
 
 async function simulateUser(userIndex) {
@@ -74,12 +42,7 @@ async function simulateUser(userIndex) {
     const sessionMeta = {
       name: randomName(),
       cloud: randomChoice(["aws", "gcp", "azure", "onprem"]),
-      zone: randomChoice([
-        "us-east-1",
-        "us-west-2",
-        "eu-central-1",
-        "asia-east",
-      ]).toLowerCase(),
+      zone: randomChoice(["us-east-1", "us-west-2", "eu-central-1", "asia-east"]).toLowerCase(),
       host: `vu-${userIndex}`,
     };
 
@@ -120,6 +83,8 @@ async function simulateUser(userIndex) {
             body: payload.toString(),
           });
 
+          await new Promise((resolve) => setTimeout(resolve, randomInt(100, 1000)));
+
           await fetch("/highscores", {
             method: "POST",
             headers: {
@@ -135,6 +100,8 @@ async function simulateUser(userIndex) {
             }).toString(),
           });
 
+          await new Promise((resolve) => setTimeout(resolve, randomInt(100, 1000)));
+
           await Promise.all([fetch("/highscores/list"), fetch("/user/stats")]);
         },
         {
@@ -148,7 +115,7 @@ async function simulateUser(userIndex) {
         }
       );
 
-      await page.waitForTimeout(randomInt(THINK_TIME_MS, THINK_TIME_MS * 3));
+      await page.waitForTimeout(randomInt(MIN_STEP_DELAY_MS, MAX_STEP_DELAY_MS));
     }
   } catch (err) {
     console.error(`[vu ${userIndex}] Error:`, err.message);
@@ -160,15 +127,27 @@ async function simulateUser(userIndex) {
 }
 
 (async function run() {
-  console.log(
-    `Starting load test: ${VUS} virtual users, session duration between ${MIN_SESSION_SECONDS}-${MAX_SESSION_SECONDS}s`
-  );
+  let iteration = 1;
+  let continueRunning = true;
 
-  const users = [];
-  for (let i = 0; i < VUS; i += 1) {
-    users.push(simulateUser(i + 1));
+  while (continueRunning) {
+    console.log(
+      `Load iteration ${iteration}: ${VUS} virtual users, session duration between ${MIN_SESSION_SECONDS}-${MAX_SESSION_SECONDS}s`
+    );
+
+    const users = [];
+    for (let i = 0; i < VUS; i += 1) {
+      users.push(simulateUser(i + 1));
+    }
+
+    await Promise.all(users);
+    console.log(`Load iteration ${iteration} complete.`);
+
+    iteration += 1;
+    if (MAX_ITERATIONS > 0 && iteration > MAX_ITERATIONS) {
+      continueRunning = false;
+    }
   }
 
-  await Promise.all(users);
   console.log("Load test run complete.");
 })();

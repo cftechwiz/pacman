@@ -82,7 +82,7 @@ Tests use `mongodb-memory-server`. No external MongoDB is required for the test 
 
 ### Load Simulation
 
-An automated browser-based load driver is available to exercise the UI and backing API routes. Install Playwright browsers once:
+An automated browser-based load driver is available to exercise the UI and backing API routes. Install Playwright (v1.56.x) browsers once:
 
 ```bash
 npx playwright install chromium
@@ -93,6 +93,14 @@ Then start the app (`npm start`) in one terminal and, in another, run:
 ```bash
 npm run load:test
 ```
+
+Docker Compose users can run the same driver in an ephemeral container (the bundled image already contains the matching Playwright 1.56 runtime):
+
+```bash
+docker compose run --rm pacman-load
+```
+
+(`docker-compose run --rm pacman-load` on older Compose releases.)
 
 Environment variables control the session behaviour:
 

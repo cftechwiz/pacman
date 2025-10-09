@@ -48,5 +48,23 @@ services:
     ports:
       - "${PORT}:${PORT}"
 
+  pacman-load:
+    image: mcr.microsoft.com/playwright:v1.56.0-jammy
+    depends_on:
+      - pacman-app
+    working_dir: /usr/src/app
+    volumes:
+      - .:/usr/src/app
+    environment:
+      LOAD_TEST_BASE_URL: ${LOAD_TEST_BASE_URL:-http://pacman-app:${PORT}}
+      LOAD_TEST_VUS: ${LOAD_TEST_VUS:-5}
+      LOAD_TEST_MIN_SESSION: ${LOAD_TEST_MIN_SESSION:-10}
+      LOAD_TEST_MAX_SESSION: ${LOAD_TEST_MAX_SESSION:-30}
+      LOAD_TEST_THINK_TIME_MS: ${LOAD_TEST_THINK_TIME_MS:-750}
+      LOAD_TEST_MAX_SCORE: ${LOAD_TEST_MAX_SCORE:-5000}
+      LOAD_TEST_MAX_LEVEL: ${LOAD_TEST_MAX_LEVEL:-25}
+      LOAD_TEST_MAX_LIVES: ${LOAD_TEST_MAX_LIVES:-5}
+    entrypoint: ["sh", "-c", "npm ci && npm run load:test"]
+
 volumes:
   mongo-data:
