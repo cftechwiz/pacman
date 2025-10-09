@@ -1,58 +1,124 @@
-# pacman
-Pac-Man
+# Pac-Man Modernized
 
-## Install dependencies
+This repo hosts a modernized take on the classic Pac-Man Node.js game. The app now targets Node 18+, uses the latest MongoDB driver, renders server views with EJS, and emits structured logs through Pino. Docker and Kubernetes manifests plus GitHub Actions workflows provide an end-to-end delivery pipeline, and a fresh test suite keeps critical routes covered.
 
-```
+## Features
+
+- **Current Node.js stack** – Express 4, MongoDB driver 6, EJS templates, and Pino logging.
+- **Structured logging** – Consistent JSON output across the API, location probes, and server bootstrap.
+- **Automated testing** – Mocha/Chai tests with Mongo Memory Server and Supertest integration coverage.
+- **Container & orchestration ready** – Production-grade `Dockerfile`, `docker-compose.yml`, and `pacman.yaml` for Kubernetes.
+- **CI/CD workflows** – GitHub Actions lint/test/build pipeline plus a release workflow that packages artifacts with `npm pack`.
+- **Observability-ready** – Includes OpenTelemetry runtime dependencies so you can plug in tracing/exporters without extra plumbing.
+
+## Getting Started
+
+### Prerequisites
+
+- Node.js ≥ 18
+- npm ≥ 9
+- MongoDB instance (local, Atlas, or provided via Docker/Kubernetes)
+
+### Installation
+
+```bash
 npm install
 ```
 
-## Getting started
+### Environment Variables
 
-```
-npm run start
-```
+Most runtime settings live in `.env`. The key values are:
 
-## Development
+| Variable | Purpose | Default in `.env` |
+| --- | --- | --- |
+| `NODE_ENV` | Runtime mode | `production` |
+| `PORT` | HTTP port | `8080` |
+| `MONGO_SERVICE_HOST` | MongoDB host (single or comma-separated list) | `pacman-mongo` |
+| `MY_MONGO_PORT` | MongoDB port | `27017` |
+| `MONGO_DATABASE` | Database name | `pacman` |
+| `MONGO_USE_SSL` / `MONGO_VALIDATE_SSL` | SSL flags | `false` / `true` |
+| `MONGO_AUTH_USER`, `MONGO_AUTH_PWD`, `MONGO_REPLICA_SET` | Optional auth/replica-set settings | empty |
 
-```
+### Local Development
+
+```bash
+# Run the app
+npm start
+
+# Hot-reload development server (nodemon)
 npm run dev
+
+# Lint, test, and combined build script
+npm run lint
+npm test
+npm run build
 ```
 
-## Create Application Container Image
+Tests use `mongodb-memory-server`. No external MongoDB is required for the test suite.
 
-### Docker Container Image
+## Docker & Docker Compose
 
-The [Dockerfile](docker/Dockerfile) performs the following steps:
+Build the production image from the project root:
 
-1. It is based on Node.js LTS Version 6 (Boron).
-1. It then clones the Pac-Man game into the configured application directory.
-1. Exposes port 8080 for the web server.
-1. Starts the Node.js application using `npm start`.
-
-To build the image run:
-
-```
-cd docker
-docker build -t <registry>/<user>/pacman-nodejs-app .
+```bash
+docker build -t <registry>/<user>/pacman-app:latest .
 ```
 
-You can test the image by running:
+Run the local stack (app + MongoDB):
 
-```
-docker run -p 8000:8080 <registry>/<user>/pacman-nodejs-app
-```
-
-And going to `http://localhost:8000/` to see if you get the Pac-Man game.
-
-Once you're satisfied you can push the image to the container registry.
-
-```
-docker push <registry>/<user>/pacman-nodejs-app
+```bash
+docker compose up --build
 ```
 
-### Building using an s2i image
+The compose file maps the `.env` values into both containers and persists MongoDB data via the `mongo-data` volume.
+
+## Kubernetes Deployment
+
+`pacman.yaml` contains everything needed to deploy into a cluster:
+
+- Namespace, ConfigMap, and PersistentVolumeClaim
+- MongoDB Deployment + Service
+- Pac-Man Deployment + LoadBalancer Service
+
+Adjust the `pacman-app` image reference to match your registry, then apply:
+
+```bash
+kubectl apply -f pacman.yaml
+```
+
+If your cluster lacks a LoadBalancer, switch the service type to `NodePort` or expose via an Ingress.
+
+## Continuous Integration & Releases
+
+GitHub Actions workflows live in `.github/workflows`:
+
+- `ci.yml` runs lint ➝ tests (Node 18/20 matrix) ➝ build on pushes to `master` or `modernize`, and on pull requests.
+- `release.yml` triggers on version tags (`v*`) or manual dispatch, running lint/test/build, packaging with `npm pack`, uploading artifacts, and attaching the tarball to a GitHub Release.
+
+CI relies on `npm ci`, so ensure `package-lock.json` stays up to date.
+
+## Project Structure Highlights
 
 ```
-s2i build . centos/nodejs-6-centos7 pacman
+.
+├── app.js                # Express app setup
+├── bin/server.js         # HTTP server bootstrap with Pino logging
+├── public/               # Front-end game assets (HTML/CSS/JS/media)
+├── routes/               # REST API routes (highscores, user stats, location metadata)
+├── lib/                  # Database connector, logger, configuration helpers
+├── test/                 # Mocha/Chai/Supertest specs
+├── Dockerfile            # Production container image (node:20-alpine)
+├── docker-compose.yml    # Local app + Mongo stack
+├── pacman.yaml           # Kubernetes deployment
+└── .github/workflows/    # CI/CD pipelines
 ```
+
+## Summary of Modernization Work
+
+- Upgraded runtime dependencies, adopted async/await across Mongo usage, and replaced Jade with EJS.
+- Added a Pino-based logging layer to the server and routes for consistent structured output.
+- Implemented unit and integration tests with MongoMemoryServer & Supertest.
+- Delivered container, docker-compose, and Kubernetes manifests for repeatable deployments.
+- Established linting, build, test scripts, and GitHub Actions workflows, including artifact-based releases.
+
+Enjoy the refreshed Pac-Man experience!
