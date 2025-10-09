@@ -184,12 +184,26 @@ describe('Route integration', function () {
         it('serves splunk instrumentation script with env values', async function () {
             const response = await request.get('/js/splunk-instrumentation.js').expect(200);
 
-            expect(response.text).to.include('"realm":"test-realm"');
-            expect(response.text).to.include('"rumAccessToken":"test-token"');
-            expect(response.text).to.include('"applicationName":"test-app"');
-            expect(response.text).to.include('"version":"1.2.3"');
-            expect(response.text).to.include('"deploymentEnvironment":"test-env"');
-            expect(response.text).to.include('"recorder":"session-recorder"');
+            const rumMatch = response.text.match(/const rumConfig = (.*?);\nconst sessionRecorderConfig/s);
+            expect(rumMatch, 'rum config block exists').to.exist;
+            const rumConfig = JSON.parse(rumMatch[1]);
+            expect(rumConfig).to.deep.equal({
+                realm: 'test-realm',
+                rumAccessToken: 'test-token',
+                applicationName: 'test-app',
+                version: '1.2.3',
+                deploymentEnvironment: 'test-env'
+            });
+
+            const sessionMatch = response.text.match(/const sessionRecorderConfig = (.*?);\n\nif/s);
+            expect(sessionMatch, 'session recorder config block exists').to.exist;
+            const sessionConfig = JSON.parse(sessionMatch[1]);
+            expect(sessionConfig).to.deep.equal({
+                realm: 'test-realm',
+                rumAccessToken: 'test-token',
+                recorder: 'session-recorder'
+            });
+
             expect(response.text).to.include('SplunkSessionRecorder.init');
         });
     });
