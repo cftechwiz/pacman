@@ -64,6 +64,9 @@ async function simulateUser(userIndex) {
     while (Date.now() - start < runForMs) {
       await page.evaluate(
         async ({ meta, limits, userIdValue }) => {
+          const randomDelay = (minimum, maximum) =>
+            Math.floor(Math.random() * (maximum - minimum + 1)) + minimum;
+
           const payload = new URLSearchParams({
             userId: userIdValue,
             cloud: meta.cloud,
@@ -100,7 +103,9 @@ async function simulateUser(userIndex) {
             }).toString(),
           });
 
-          await new Promise((resolve) => setTimeout(resolve, randomInt(100, 1000)));
+          await new Promise((resolve) =>
+            setTimeout(resolve, randomDelay(100, 1000))
+          );
 
           await Promise.all([fetch("/highscores/list"), fetch("/user/stats")]);
         },
