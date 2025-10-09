@@ -1,0 +1,8 @@
+node_modules/
+public/js/
+public/mp3/
+public/wav/
+public/data/
+public/fonts/
+public/img/
+public/cache.manifest
