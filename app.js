@@ -35,13 +35,17 @@ app.get("/js/splunk-rum-loader.js", function (req, res) {
     recorder: process.env.SPLUNK_SESSION_RECORDER || "",
   };
 
-  const scriptSource = `// Dynamically generated Splunk RUM loader\n` +
+  const scriptSource =
+    `// Dynamically generated Splunk RUM loader\n` +
     `(function(){\n` +
     `  var rumConfig = ${JSON.stringify(rumConfig)};\n` +
-    `  var sessionRecorderConfig = ${JSON.stringify(sessionRecorderConfig)};\n` +
+    `  var sessionRecorderConfig = ${JSON.stringify(
+      sessionRecorderConfig
+    )};\n` +
     `  if (!rumConfig.rumAccessToken) {\n` +
     `    return;\n` +
     `  }\n` +
+    `  var possibleUsers = ['player-alpha', 'player-beta', 'player-gamma', 'player-delta', 'player-epsilon'];\n` +
     `\n` +
     `  function loadScript(src, onload) {\n` +
     `    var script = document.createElement('script');\n` +
@@ -59,6 +63,10 @@ app.get("/js/splunk-rum-loader.js", function (req, res) {
     `      return;\n` +
     `    }\n` +
     `    window.SplunkRum.init(rumConfig);\n` +
+    `    if (window.SplunkRum && window.SplunkRum.setGlobalAttributes) {\n` +
+    `      var chosenUser = possibleUsers[Math.floor(Math.random() * possibleUsers.length)];\n` +
+    `      window.SplunkRum.setGlobalAttributes({ 'user.id': chosenUser, 'service.name': 'pacman-ui' });\n` +
+    `    }\n` +
     `\n` +
     `    if (!sessionRecorderConfig.recorder) {\n` +
     `      return;\n` +
