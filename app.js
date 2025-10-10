@@ -65,7 +65,7 @@ app.get("/js/splunk-rum-loader.js", function (req, res) {
     `    window.SplunkRum.init(rumConfig);\n` +
     `    if (window.SplunkRum && window.SplunkRum.setGlobalAttributes) {\n` +
     `      var chosenUser = possibleUsers[Math.floor(Math.random() * possibleUsers.length)];\n` +
-    `      window.SplunkRum.setGlobalAttributes({ 'user.id': chosenUser, 'service.name': 'pacman-ui' });\n` +
+    `      window.SplunkRum.setGlobalAttributes({ 'user.name': chosenUser, 'service.name': 'pacman-ui' });\n` +
     `    }\n` +
     `\n` +
     `    if (!sessionRecorderConfig.recorder) {\n` +
