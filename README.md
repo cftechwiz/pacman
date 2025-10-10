@@ -102,6 +102,14 @@ docker compose run --rm pacman-load
 
 (`docker-compose run --rm pacman-load` on older Compose releases.)
 
+### Optional Splunk OTel Collector
+
+The compose stack now includes an optional Splunk OpenTelemetry Collector service (`otel-collector`) that scrapes MongoDB metrics and forwards them to the configured OTLP endpoint (`${OTEL_EXPORTER_OTLP_ENDPOINT}`) using the same `SPLUNK_ACCESS_TOKEN`. Enable it by ensuring the access token and endpoint are set in `.env`, then run:
+
+```bash
+docker compose up -d otel-collector
+```
+
 Environment variables control the session behaviour:
 
 | Variable | Description | Default |

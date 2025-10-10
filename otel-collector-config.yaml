@@ -1,0 +1,24 @@
+receivers:
+  otlp:
+    protocols:
+      grpc:
+  mongodb:
+    hosts:
+      - ${MONGO_SERVICE_HOST}:${MY_MONGO_PORT}
+    collection_interval: 60s
+
+processors:
+  batch: {}
+
+exporters:
+  otlp:
+    endpoint: ${OTEL_EXPORTER_OTLP_ENDPOINT}
+    headers:
+      authorization: "Splunk ${SPLUNK_ACCESS_TOKEN}"
+
+service:
+  pipelines:
+    metrics:
+      receivers: [otlp, mongodb]
+      processors: [batch]
+      exporters: [otlp]

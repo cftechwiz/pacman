@@ -71,26 +71,33 @@ async function performUiAction(page) {
   const actions = [
     async () => {
       try {
-        await page.click(".button#newGame", { timeout: 1000 });
-        await page.waitForTimeout(randomInt(200, 600));
-        const keys = [
-          "ArrowUp",
-          "ArrowLeft",
-          "ArrowDown",
-          "ArrowRight",
-          "Space",
-        ];
-        await page.keyboard.press(randomChoice(keys));
+        const button = page.locator(".button#newGame");
+        await button.scrollIntoViewIfNeeded();
+        if (await button.isVisible()) {
+          await button.click({ timeout: 2000 });
+          await page.waitForTimeout(randomInt(200, 600));
+          const keys = [
+            "ArrowUp",
+            "ArrowLeft",
+            "ArrowDown",
+            "ArrowRight",
+            "Space",
+          ];
+          await page.keyboard.press(randomChoice(keys));
+        }
       } catch (err) {
         console.debug("New Game navigation failed", err.message);
       }
     },
     async () => {
       try {
-        await page.click(".button#highscore", { timeout: 1000 });
+        const button = page.locator(".button#highscore");
+        await button.scrollIntoViewIfNeeded();
+        await button.click({ timeout: 2000 });
         await page.waitForTimeout(randomInt(300, 800));
         await page
-          .click("#highscore-content .button#back", { timeout: 500 })
+          .locator("#highscore-content .button#back")
+          .click({ timeout: 2000, force: true })
           .catch(() => {});
       } catch (err) {
         console.debug("Highscore navigation failed", err.message);
@@ -98,10 +105,13 @@ async function performUiAction(page) {
     },
     async () => {
       try {
-        await page.click(".button#livestats", { timeout: 1000 });
+        const button = page.locator(".button#livestats");
+        await button.scrollIntoViewIfNeeded();
+        await button.click({ timeout: 2000 });
         await page.waitForTimeout(randomInt(300, 800));
         await page
-          .click("#livestats-content .button#back", { timeout: 500 })
+          .locator("#livestats-content .button#back")
+          .click({ timeout: 2000, force: true })
           .catch(() => {});
       } catch (err) {
         console.debug("Live stats navigation failed", err.message);
@@ -109,10 +119,13 @@ async function performUiAction(page) {
     },
     async () => {
       try {
-        await page.click(".button#instructions", { timeout: 1000 });
+        const button = page.locator(".button#instructions");
+        await button.scrollIntoViewIfNeeded();
+        await button.click({ timeout: 2000, force: true });
         await page.waitForTimeout(randomInt(300, 800));
         await page
-          .click("#instructions-content .button#back", { timeout: 500 })
+          .locator("#instructions-content .button#back")
+          .click({ timeout: 2000, force: true })
           .catch(() => {});
       } catch (err) {
         console.debug("Instructions navigation failed", err.message);
@@ -120,7 +133,9 @@ async function performUiAction(page) {
     },
     async () => {
       try {
-        await page.click("#canvas-container", { timeout: 1000 });
+        const canvas = page.locator("#canvas-container");
+        await canvas.scrollIntoViewIfNeeded();
+        await canvas.click({ timeout: 2000 });
         await page.waitForTimeout(randomInt(100, 400));
         const keys = ["ArrowUp", "ArrowLeft", "ArrowDown", "ArrowRight"];
         for (let i = 0; i < randomInt(1, 3); i += 1) {

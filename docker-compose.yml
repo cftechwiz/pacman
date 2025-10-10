@@ -66,5 +66,18 @@ services:
       LOAD_TEST_MAX_LIVES: ${LOAD_TEST_MAX_LIVES:-5}
     entrypoint: ["sh", "-c", "npm ci && npm run load:test"]
 
+  otel-collector:
+    image: quay.io/signalfx/splunk-otel-collector:latest
+    depends_on:
+      - pacman-app
+    environment:
+      SPLUNK_ACCESS_TOKEN: ${SPLUNK_ACCESS_TOKEN}
+      OTEL_EXPORTER_OTLP_ENDPOINT: ${OTEL_EXPORTER_OTLP_ENDPOINT}
+      MONGO_SERVICE_HOST: ${MONGO_SERVICE_HOST}
+      MY_MONGO_PORT: ${MY_MONGO_PORT}
+    volumes:
+      - ./otel-collector-config.yaml:/etc/otel/config.yaml:ro
+    command: ["--config", "/etc/otel/config.yaml"]
+
 volumes:
   mongo-data:
