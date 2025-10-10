@@ -10,6 +10,15 @@ var logger = baseLogger.child({ module: "routes/user" });
 // create application/x-www-form-urlencoded parser
 var urlencodedParser = bodyParser.urlencoded({ extended: false });
 
+function randomLatency(minMs, maxMs) {
+  var min = Math.ceil(minMs);
+  var max = Math.floor(maxMs);
+  var value = Math.floor(Math.random() * (max - min + 1)) + min;
+  return new Promise(function (resolve) {
+    setTimeout(resolve, value);
+  });
+}
+
 // middleware that is specific to this router
 router.use(function timeLog(req, res, next) {
   logger.debug({ method: req.method, url: req.originalUrl }, "Incoming request");
@@ -20,6 +29,7 @@ router.get("/id", async function (req, res, next) {
   logger.info("Handling GET /user/id");
   try {
     var db = await Database.getDb(req.app);
+    await randomLatency(10, 300);
     var insertResult = await db.collection("userstats").insertOne(
       {
         date: Date(),
@@ -60,6 +70,7 @@ router.post("/stats", urlencodedParser, async function (req, res, next) {
 
   try {
     var db = await Database.getDb(req.app);
+    await randomLatency(10, 300);
     var updateResult = await db.collection("userstats").updateOne(
       {
         _id: new ObjectId(req.body.userId),

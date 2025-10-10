@@ -11,6 +11,15 @@ var logger = baseLogger.child({ module: "routes/highscores" });
 var urlencodedParser = bodyParser.urlencoded({ extended: false });
 
 const tracer = trace.getTracer("pacman");
+
+function randomLatency(minMs, maxMs) {
+  var min = Math.ceil(minMs);
+  var max = Math.floor(maxMs);
+  var value = Math.floor(Math.random() * (max - min + 1)) + min;
+  return new Promise(function (resolve) {
+    setTimeout(resolve, value);
+  });
+}
 // middleware that is specific to this router
 router.use(function timeLog(req, res, next) {
   logger.debug(
@@ -96,6 +105,7 @@ router.post("/", urlencodedParser, async function (req, res, next) {
 
     try {
       var db = await Database.getDb(req.app);
+      await randomLatency(10, 300);
       var insertResult = await db
         .collection("highscore")
         .insertOne(insertDocument, {
