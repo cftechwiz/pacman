@@ -5,13 +5,17 @@ receivers:
   mongodb:
     hosts:
       - ${MONGO_SERVICE_HOST}:${MY_MONGO_PORT}
+    username: ${MONGO_AUTH_USER}
+    password: ${MONGO_AUTH_PWD}
+    tls:
+      insecure: true
     collection_interval: 60s
 
 processors:
   batch: {}
 
 exporters:
-  otlp:
+  otlphttp:
     endpoint: ${OTEL_EXPORTER_OTLP_ENDPOINT}
     headers:
       authorization: "Splunk ${SPLUNK_ACCESS_TOKEN}"
@@ -21,4 +25,4 @@ service:
     metrics:
       receivers: [otlp, mongodb]
       processors: [batch]
-      exporters: [otlp]
+      exporters: [otlphttp]
