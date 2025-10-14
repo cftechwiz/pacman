@@ -4,11 +4,7 @@ receivers:
       grpc:
   mongodb:
     hosts:
-      - ${MONGO_SERVICE_HOST}:${MY_MONGO_PORT}
-    username: ${MONGO_AUTH_USER}
-    password: ${MONGO_AUTH_PWD}
-    tls:
-      insecure: true
+      - endpoint: ${MONGO_SERVICE_HOST}:${MY_MONGO_PORT}
     collection_interval: 60s
 
 processors:

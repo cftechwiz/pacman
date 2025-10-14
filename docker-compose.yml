@@ -47,6 +47,12 @@ services:
       SPLUNK_PROFILER_LOGS_ENDPOINT: ${SPLUNK_PROFILER_LOGS_ENDPOINT}
     ports:
       - "${PORT}:${PORT}"
+    logging:
+      driver: "splunk"
+      options:
+        splunk-token: ${SPLUNK_LOGS_TOKEN}
+        splunk-url: ${SPLUNK_LOGS_URL}
+        tag: "{{.Name}}/{{.FullID}}"
 
   pacman-load:
     image: mcr.microsoft.com/playwright:v1.56.0-jammy
