@@ -5,6 +5,9 @@ receivers:
   mongodb:
     hosts:
       - endpoint: ${MONGO_SERVICE_HOST}:${MY_MONGO_PORT}
+    tls:
+      insecure: true
+      insecure_skip_verify: true
     collection_interval: 60s
 
 processors:
